@@ -1,4 +1,4 @@
-python==3.10.11
-streamlit==1.31.1
+python
+streamlit
 streamlit_option_menu
 plotly
