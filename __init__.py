@@ -157,7 +157,7 @@ if fileUpload is not None:
                     st.write('converted to Datetime format')
                 elif value == 'remove':
 			
-                    st.session_state.df.drop(columns=[key])
+                    st.session_state.df.drop(key, axis=1, inplace=True)
 			
                     st.write('column is removed')
                 elif value == 'none':
