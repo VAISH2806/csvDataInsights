@@ -10,7 +10,7 @@ from pandas.api.types import (
     is_numeric_dtype,
     is_object_dtype,
 )
-#from streamlit_card import card
+
 
 
 def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -25,6 +25,11 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     modify = st.checkbox("Add filters")
 
+    to_delete_columns = st.multiselect("Select columns to delete", df.columns)
+    if st.button("Remove columns"):
+        for col in to_delete_columns:
+            df = df.drop([col], axis = 1)
+
     if not modify:
         return df
 
@@ -32,14 +37,20 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     # Try to convert datetimes into a standard format (datetime, no timezone)
     for col in df.columns:
-        if is_object_dtype(df[col]):
+        if is_object_dtype(df[col]) and  df[col].nunique() > 20:
             try:
                 df[col] = pd.to_datetime(df[col])
+                print('converted to date',col)
             except Exception:
                 pass
 
         if is_datetime64_any_dtype(df[col]):
             df[col] = df[col].dt.tz_localize(None)
+            print('converted to localized',col)
+
+
+
+            
 
     modification_container = st.container()
 
@@ -86,6 +97,8 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 if user_text_input:
                     df = df[df[column].astype(str).str.contains(user_text_input)]
 
+
+        
     return df
 
 def is_date(string):
@@ -95,6 +108,14 @@ def is_date(string):
     except ValueError:
         return False
 
+def is_float(string):
+    try:
+        pd.to_numeric(string)
+        return True
+    except Exception:
+        return False
+
+
 # Number of entries per screen
 # N = 15
 fileUpload = st.file_uploader("Upload a Dataset", type=["csv", "txt"])
@@ -103,6 +124,7 @@ fileUpload = st.file_uploader("Upload a Dataset", type=["csv", "txt"])
 selected = option_menu("", ["Explore dataset","Analysis","Dashboard"])
 if fileUpload is not None:
     df = pd.read_csv(fileUpload,encoding='latin')
+    print(df.info())
     if 'df' not in st.session_state:
         st.session_state.df = df
         for col in st.session_state.df.columns:
@@ -110,12 +132,19 @@ if fileUpload is not None:
 
             if st.session_state.df[col].dtype == 'object' and all(st.session_state.df[col].apply(is_date)):
                 print('converted to date format',col)
-                st.session_state.df[col] = pd.to_datetime(df[col])
-
-    
+                st.session_state.df[col] = pd.to_datetime(st.session_state.df[col])
+  
             if st.session_state.df[col].dtype in numerics and st.session_state.df[col].nunique() <= 31:
                 print('converted to object',col,st.session_state.df[col].nunique())
                 st.session_state.df[col]=st.session_state.df[col].apply(str)
+
+
+                      
+            if  st.session_state.df[col].nunique() > 31 and  st.session_state.df[col].dtype == 'object':
+                print(col,'greater than 31') 
+                if any(st.session_state.df[col].apply(is_float)) :
+                    print('converted to float',col)
+                    st.session_state.df[col] =    pd.to_numeric(st.session_state.df[col], errors='coerce')
 
         duplicate = st.session_state.df.duplicated().tolist()
         if True in duplicate:
@@ -127,69 +156,10 @@ if fileUpload is not None:
         cols = st.session_state.df.shape[1] 
         st.write("Number of rows : ",rows)
         st.write("Number of columns : ",cols)
-        st.dataframe(filter_dataframe(st.session_state.df))
+        st.session_state.df = filter_dataframe(st.session_state.df)
+        st.dataframe(st.session_state.df)
 
-        # if st.button('preprocess'):
 
-     
-
-    # if selected == "Pre process":
-    #     # if 'isDuplicate' not in st.session_state:
-    #     #     st.session_state.isDuplicate = 'No'
-
-     
-    #     for col in st.session_state.df.columns:
-    #         data["columns"].append(col)
-    #         data["Datatype"].append(st.session_state.df[col].dtype)
-    #         data["missing counts"].append(st.session_state.df[col].isnull().sum())
-    #         data["unique"].append(st.session_state.df[col].nunique())
-                
-              
-            
-    #     details = pd.DataFrame(data)
-    #     test =details.astype(str)
-    #     st.dataframe(test)
-    #     duplicate = st.session_state.df.duplicated().tolist()
-    #     if True in duplicate:
-    #         # st.title("Duplicate rows")
-    #         dup =  st.session_state.df[st.session_state.df.duplicated()]
-    #         # st.dataframe(dup)
-    #         st.session_state.df = df.drop_duplicates()
-            # if st.button('Remove Duplicate rows'):
-            #     st.session_state.isDuplicate = 'Yes'
-                
-            #     st.write('duplicate rows removed')
-            #     st.write(len(st.session_state.df))
-                
-        # else:
-        #     st.title("No duplicates")
-
-        # st.title("Data type conversion")
-
-        # dict = {}
-        
-        # for col in st.session_state.df.columns:
-            
-        #     st.write("Actual data type",st.session_state.df[col].dtype)
-        #     val = st.radio(col,('none','object','Datetime','remove',))
-           
-        #     dict[col] =  val
-        
-        # if st.button('process'):
-        #     st.write(dict)
-        #     for key,value in dict.items():
-        #         if value == 'object':
-        #             st.session_state.df[key]=df[key].apply(str)
-        #             st.write('converted to object(str)')
-        #         elif value == 'Datetime':
-        #             st.session_state.df[key] = pd.to_datetime(df[key])
-        #             st.write('converted to Datetime format')
-        #         elif value == 'remove':
-        #             # st.session_state.df = df.drop(columns=[key])
-        #             st.session_state.df = st.session_state.df.drop(columns=[key])
-        #             st.write('column is removed')
-        #         elif value == 'none':
-        #             pass
            
     if selected == "Analysis":
         analyze = option_menu("Uni-variate Analysis", ["Categorical","Numerical"])
@@ -240,7 +210,7 @@ if fileUpload is not None:
                     for column in obj_column:
                         left, right = st.columns((1, 20))
                         # Treat columns with < 10 unique values as categorical
-                        if df[column].dtype == 'object' and df[column].dtype != 'int64':
+                        if df[column].dtype == 'object' and df[column].dtype != 'int64' and len(df[column].unique()) != df.shape[0]:
                             user_cat_input = right.multiselect(
                                 f"{column}",
                                 df[column].unique(),
@@ -302,7 +272,7 @@ if fileUpload is not None:
             for col in ColumnOption:
                 # print(is_categorical_dtype(st.session_state.df[col]), col)
                 
-                if is_numeric_dtype(df[col]) and df[col].nunique() > 10:
+                if is_numeric_dtype(df[col]) and df[col].nunique() > 31:
                             ColumnOption = st.radio("Select the column name to analyze",Catcol) 
                         #    var =  col+ColumnOption
                         #    print('---------------------------------------')
@@ -310,16 +280,16 @@ if fileUpload is not None:
                             var = df.groupby(ColumnOption)[col].sum().reset_index()
                             print('------------------')
                             print(var)
-                            fig2 = px.line(var, x=ColumnOption, y=col, title='Life expectancy in Canada')
+                            fig2 = px.bar(var, x=ColumnOption, y=col)
                             st.plotly_chart(fig2, theme=None, use_container_width=True)
                             st.text(col)
                             st.text("%.2f" % df[col].mean())
-                if (df[col].dtype == 'object' or df[col].nunique() < 10):
+                if (df[col].dtype == 'object' or df[col].nunique() <= 31):
                             print('---------------------entered---------------')
                             unique_values_counts = df[col].value_counts().reset_index()
                             print(col)
                             unique_values_counts.columns = [col, 'Count']
-                            fig1 = px.bar(unique_values_counts, x=col, y='Count', title=f'Bar Graph of Unique Values in {col}')
+                            fig1 = px.bar(unique_values_counts, x=col, y='Count')
                             st.plotly_chart(fig1, theme=None, use_container_width=True)
             
                
@@ -330,4 +300,3 @@ if fileUpload is not None:
 
 
                 
-
