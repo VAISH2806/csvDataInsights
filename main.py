@@ -118,12 +118,19 @@ def is_float(string):
 
 # Number of entries per screen
 # N = 15
-fileUpload = st.file_uploader("Upload a Dataset", type=["csv", "txt"])
+st.markdown("<h1 style='text-align: center;'>CSV DATA INSIGHTS</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Get information of your data through visualization</p>", unsafe_allow_html=True)
+
+fileUpload = st.file_uploader("Upload a Dataset")
 # with st.sidebar:
 # 	selected = option_menu("", ["Explore dataset","Pre process","Analysis","Dashboard"])
 selected = option_menu("", ["Explore dataset","Analysis","Dashboard"])
 if fileUpload is not None:
-    df = pd.read_csv(fileUpload,encoding='latin')
+
+    try:
+        df = pd.read_csv(fileUpload,encoding='latin')
+    except Exception:
+        df = pd.DataFrame(pd.read_excel(fileUpload)) 
     print(df.info())
     if 'df' not in st.session_state:
         st.session_state.df = df
@@ -154,10 +161,14 @@ if fileUpload is not None:
     if selected == "Explore dataset" and fileUpload is not None:
         rows = st.session_state.df.shape[0]  
         cols = st.session_state.df.shape[1] 
-        st.write("Number of rows : ",rows)
-        st.write("Number of columns : ",cols)
-        st.session_state.df = filter_dataframe(st.session_state.df)
-        st.dataframe(st.session_state.df)
+        rows_html=f"""
+                   <h4>Number of rows:{rows}</h4>
+                   <h4>Number of columns:{cols}</h4>
+                  
+               """
+        
+        st.markdown(rows_html, unsafe_allow_html=True)
+        st.dataframe(filter_dataframe(st.session_state.df))
 
 
            
@@ -282,8 +293,12 @@ if fileUpload is not None:
                             print(var)
                             fig2 = px.bar(var, x=ColumnOption, y=col)
                             st.plotly_chart(fig2, theme=None, use_container_width=True)
-                            st.text(col)
-                            st.text("%.2f" % df[col].mean())
+                        
+                            sum = "%.2f" % df[col].sum()
+                            result_html = f"""
+                                       <h4>Total {col}: {sum}</h4>
+                             """
+                            st.markdown(result_html, unsafe_allow_html=True)
                 if (df[col].dtype == 'object' or df[col].nunique() <= 31):
                             print('---------------------entered---------------')
                             unique_values_counts = df[col].value_counts().reset_index()
@@ -300,3 +315,12 @@ if fileUpload is not None:
 
 
                 
+# [theme]
+# base="dark"
+# primaryColor="#4b90ff"
+# [theme]
+# base="dark"
+# primaryColor="#4b90ff"
+# backgroundColor="#132956"
+# secondaryBackgroundColor="#6069b9"
+# font="serif"
