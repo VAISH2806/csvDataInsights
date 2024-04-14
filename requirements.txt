@@ -1,3 +1,4 @@
-python==3.10.11
-streamlit==1.31.1
+GitPython
+streamlit
 streamlit_option_menu
+plotly
