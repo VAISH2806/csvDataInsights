@@ -28,12 +28,12 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     to_delete_columns = st.multiselect("Select columns to delete", df.columns)
     if st.button("Remove columns"):
         for col in to_delete_columns:
-            df = df.drop([col], axis = 1)
-
+            df.drop([col], axis = 1, inplace=True)
+    df = df.copy()
     if not modify:
         return df
 
-    df = df.copy()
+    
 
     # Try to convert datetimes into a standard format (datetime, no timezone)
     for col in df.columns:
@@ -283,7 +283,7 @@ if fileUpload is not None:
             for col in ColumnOption:
                 # print(is_categorical_dtype(st.session_state.df[col]), col)
                 
-                if is_numeric_dtype(df[col]) and df[col].nunique() > 31:
+                if is_numeric_dtype(df[col]) or df[col].nunique() > 31:
                             ColumnOption = st.radio("Select the column name to analyze",Catcol) 
                         #    var =  col+ColumnOption
                         #    print('---------------------------------------')
